@@ -16,8 +16,8 @@ nrpe="/opt/plugins/check_nrpe"
 # Source naemon utilities
 source /opt/plugins/utils.sh
 
-help="$0 \n
-Usage: $0 -H op5-server -u api-user -p api-password\n
+help="\n
+Usage: $0 -H op5-server -u api-user -p api-password -g host-group\n
 Options:
 -H Hostname/IP of OP5 server
 -u API username
@@ -60,7 +60,7 @@ hosts=$(sed -e 's/[}"]*\(.\)[{"]*/\1/g;y/,/\n/' <<< $hosts | cut -d":" -f2 | sed
 printf "Searching for drive letters on hosts and adding those to OP5 Monitor...\n"
 for host in $hosts
 do
-    drive_letters=$("$nrpe" -u -t 3 -s -H "$host" -c check_drivesize)
+    drive_letters=$("$nrpe" -u -t 3 -s -H "$host" -c check_drivesize -a "filter=type in ('fixed')")
     if [ $? -eq "3" ]
     then
         echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Host $host could not be reachable over NRPE\n\n" >> /var/tmp/windows-disk-scanner.log
@@ -68,7 +68,7 @@ do
     fi
 
     # Trim down to only drive letters
-    drive_letters=$(echo $drive_letters | cut -d"|" -f2 | sed 's/[0-9]*//g' | sed -E -e 's/[[:blank:]]+/\n/g' | grep "^'" | cut -d"'" -f2 | cut -d":" -f1 | sort | uniq)
+    drive_letters=$(echo $drive_letters | cut -d"|" -f2 | sed 's/[0-9]*//g' | sed -E -e 's/[[:blank:]]+/\n/g' | grep "^'" | cut -d"'" -f2 | cut -d":" -f1 | sort | grep -v "Volume" | uniq)
 
     # Add a service-check for each drive in OP5 Monitor
     for drive_letter in $drive_letters
