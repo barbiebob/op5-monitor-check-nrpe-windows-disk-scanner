@@ -64,7 +64,7 @@ do
     if [ $? -eq "3" ]
     then
         echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Host $host could not be reachable over NRPE\n\n" >> /var/tmp/windows-disk-scanner.log
-        break
+        continue
     fi
 
     # Trim down to only drive letters
