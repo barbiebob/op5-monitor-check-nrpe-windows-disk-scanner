@@ -1,11 +1,17 @@
 #!/bin/bash
+#
+# "THE BEER-WARE LICENSE" - - - - - - - - - - - - - - - - - -
+# This file was initially written by Robert Claesson.
+# As long as you retain this notice you can do whatever you
+# want with this stuff. If we meet some day, and you think
+# this stuff is worth it, you can buy me a beer in return.
+# - - - - - - - - - - - - - - - robert.claesson@gmail.com - -
+#
 #################################################################################################################################
 #
 # Description: Queries a Windows host for drive letters by NRPE and adds a service-check for each drive letter in OP5 Monitor.
 #
 # Runtime errors are logged in: /var/tmp/windows-disk-scanner.log
-#
-# Author: Robert Claesson, OP5 AB, 2017, <rclaesson@op5.com>
 #
 #################################################################################################################################
 
@@ -13,8 +19,12 @@
 curl=$(which curl)
 nrpe="/opt/plugins/check_nrpe"
 
-# Source naemon utilities
-source /opt/plugins/utils.sh
+# Check check_nrpe existence
+if ! which "$nrpe"
+then
+	echo "Could not find check_nrpe plugin. Please check its location."
+	exit 3
+fi
 
 help="\n
 Usage: $0 -H op5-server -u api-user -p api-password -g host-group\n
@@ -28,7 +38,7 @@ Options:
 if [ "${1}" = "--h" -o "${#}" = "0" ] || [ "${1}" = "--help" -o "${#}" = "0" ] || [ "${1}" = "-h" -o "${#}" = "0" ];
         then
         echo -e "${help}";
-        exit $STATE_UNKNOWN
+        exit 3
 fi
 
 # Setup variables
@@ -38,8 +48,8 @@ while getopts "H:u:p:g:" input; do
         u)      username=${OPTARG};;
 		p)		password=${OPTARG};;
 		g)		windows_hostgroup=${OPTARG};;
-        *)      $help ; exit $STATE_UNKNOWN;;
-        \?)     $help ; exit $STATE_UNKNOWN;;
+        *)      $help ; exit 3;;
+        \?)     $help ; exit 3;;
         esac
 done
 
@@ -48,13 +58,13 @@ printf "\nFetching hosts from Windows host groups...\n"
 hosts=$(curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?query=[hosts]%20groups%20%3E=%20%22$windows_hostgroup%22&columns=name")
 if [ $? -ne "0" ]
 then
-    echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Could not contact OP5 API.\nExiting.\n\n" >> /var/tmp/windows-disk-scanner.log
+    echo -e "$(date)" >> /var/tmp/windows-disk-scanner.log ; printf "Could not contact OP5 API.\nExiting.\n\n" | tee -a /var/tmp/windows-disk-scanner.log
     exit 1
 fi
 printf "[DONE]\n\n"
 
 # Trim JSON output to only values (host names)
-hosts=$(sed -e 's/[}"]*\(.\)[{"]*/\1/g;y/,/\n/' <<< $hosts | cut -d":" -f2 | sed 's/]//g')
+hosts=$(sed -e 's/[}"]*\(.\)[{"]*/\1/g;y/,/\n/' <<< "$hosts" | cut -d":" -f2 | sed 's/]//g')
 
 # Query hosts for drive letters (using NRPE)
 printf "Searching for drive letters on hosts and adding those to OP5 Monitor...\n"
@@ -63,7 +73,7 @@ do
     drive_letters=$("$nrpe" -u -t 3 -s -H "$host" -c check_drivesize -a "filter=type in ('fixed')")
     if [ $? -eq "3" ]
     then
-        echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Host $host could not be reachable over NRPE\n\n" >> /var/tmp/windows-disk-scanner.log
+        echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Host $host could not be reachable over NRPE\n\n" | tee -a /var/tmp/windows-disk-scanner.log
         continue
     fi
 
