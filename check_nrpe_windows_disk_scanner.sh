@@ -89,7 +89,7 @@ do
             -u \
                     "$username:$password" \
             -d \
-                    "{"\"file_id"\": "\"etc/serivces.cfg"\", \
+                    "{"\"file_id"\": "\"etc/services.cfg"\", \
                     "\"host_name"\": "\"$host"\", \
                     "\"service_description"\": "\"Disk\ Usage\ $drive_letter:"\", \
                     "\"check_command"\": "\"check_nrpe_win_drivesize"\", \
