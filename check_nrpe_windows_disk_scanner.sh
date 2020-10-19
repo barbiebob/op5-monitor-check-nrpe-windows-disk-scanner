@@ -88,6 +88,7 @@ do
       then
         # Fetch OP5 hostname from address
         op5_hostname=$($curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?format=json&query=%5Bhosts%5D+address+%3D+%22$host%22&columns=name")
+        op5_hostname=$(echo $op5_hostname | sed -e 's/[}"]*\(.\)[{"]*/\1/g;y/,/\n/' | cut -d":" -f2 | sed 's/]//g')
 
         # Add drive a service-check in OP5
         $curl \
