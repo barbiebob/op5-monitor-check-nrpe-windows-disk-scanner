@@ -55,10 +55,10 @@ done
 
 # Get all hosts from Windows hostgroup
 printf "\nFetching hosts from Windows host groups...\n"
-hosts=$(curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?query=[hosts]%20groups%20%3E=%20%22$windows_hostgroup%22&columns=name&limit=1000")
+hosts=$($curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?query=[hosts]%20groups%20%3E=%20%22$windows_hostgroup%22&columns=name&limit=1000")
 if [ $? -ne "0" ]
 then
-    echo -e "$(date)" >> /var/tmp/windows-disk-scanner.log ; printf "Could not contact OP5 API.\nExiting.\n\n" | tee -a /var/tmp/windows-disk-scanner.log
+    echo -e "$(date)" >> /var/tmp/windows-disk-scanner.log ; printf "ERROR: Could not contact OP5 API.\nExiting.\n\n" | tee -a /var/tmp/windows-disk-scanner.log
     exit 1
 fi
 printf "[DONE]\n\n"
@@ -73,7 +73,7 @@ do
     drive_letters=$("$nrpe" -u -t 3 -s -H "$host" -c check_drivesize -a "filter=type in ('fixed')")
     if [ $? -eq "3" ]
     then
-        echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "Host $host could not be reachable over NRPE\n\n" | tee -a /var/tmp/windows-disk-scanner.log
+        echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "ERROR: Host $host could not be reachable over NRPE\n\n" | tee -a /var/tmp/windows-disk-scanner.log
         continue
     fi
 
@@ -83,6 +83,13 @@ do
     # Add a service-check for each drive in OP5 Monitor
     for drive_letter in $drive_letters
     do
+      # Verify drive_letter is a valid path
+      if [[ $drive_letter =~ [A-Z] && ${#drive_letter} == 1 ]]
+      then
+        # Fetch OP5 hostname from address
+        op5_hostname=$($curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?format=json&query=%5Bhosts%5D+address+%3D+%22$host%22&columns=name")
+
+        # Add drive a service-check in OP5
         $curl \
             -s -k -H \
                     'content-type: application/json' \
@@ -90,7 +97,7 @@ do
                     "$username:$password" \
             -d \
                     "{"\"file_id"\": "\"etc/services.cfg"\", \
-                    "\"host_name"\": "\"$host"\", \
+                    "\"host_name"\": "\"$op5_hostname"\", \
                     "\"service_description"\": "\"Disk\ Usage\ $drive_letter:"\", \
                     "\"check_command"\": "\"check_nrpe_win_drivesize"\", \
                     "\"check_command_args"\": "\"Drive=$drive_letter\ MaxWarn=85%\ MaxCrit=95%"\", \
@@ -103,6 +110,9 @@ do
                     "\"notification_period"\": "\"24x7"\", \
                     "\"template"\": "\"default-service"\"}" \
             "https://$op5_host/api/config/service" >> /dev/null
+       else
+         echo -e $(date) >> /var/tmp/windows-disk-scanner.log ; printf "ERROR: $drive_letter is not a usable driver letter\n\n" | tee -a /var/tmp/windows-disk-scanner.log
+      fi
     done
 done
 printf "[DONE]\n\n"
