@@ -55,7 +55,7 @@ done
 
 # Get all hosts from Windows hostgroup
 printf "\nFetching hosts from Windows host groups...\n"
-hosts=$($curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?query=[hosts]%20groups%20%3E=%20%22$windows_hostgroup%22&columns=name&limit=1000")
+hosts=$($curl -s -g -k -X GET -u "$username:$password" "https://$op5_host/api/filter/query?query=[hosts]%20groups%20%3E=%20%22$windows_hostgroup%22&columns=address&limit=1000")
 if [ $? -ne "0" ]
 then
     echo -e "$(date)" >> /var/tmp/windows-disk-scanner.log ; printf "ERROR: Could not contact OP5 API.\nExiting.\n\n" | tee -a /var/tmp/windows-disk-scanner.log
