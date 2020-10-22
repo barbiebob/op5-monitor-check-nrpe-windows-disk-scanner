@@ -63,7 +63,7 @@ then
 fi
 printf "[DONE]\n\n"
 
-# Trim JSON output to only values (host names)
+# Trim JSON output to only values (host addresses)
 hosts=$(sed -e 's/[}"]*\(.\)[{"]*/\1/g;y/,/\n/' <<< "$hosts" | cut -d":" -f2 | sed 's/]//g')
 
 # Query hosts for drive letters (using NRPE)
