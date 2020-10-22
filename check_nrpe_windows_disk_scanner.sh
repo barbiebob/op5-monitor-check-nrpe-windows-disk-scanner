@@ -102,13 +102,6 @@ do
                     "\"service_description"\": "\"Disk\ Usage\ $drive_letter:"\", \
                     "\"check_command"\": "\"check_nrpe_win_drivesize"\", \
                     "\"check_command_args"\": "\"Drive=$drive_letter\ MaxWarn=85%\ MaxCrit=95%"\", \
-                    "\"check_interval"\": "\"5"\", \
-                    "\"check_period"\": "\"24x7"\", \
-                    "\"max_check_attempts"\": "\"3"\", \
-                    "\"retry_interval"\": "\"1"\", \
-                    "\"notification_interval"\": "\"0"\", \
-                    "\"notification_options"\": "\"c,w,u,r,f,s"\", \
-                    "\"notification_period"\": "\"24x7"\", \
                     "\"template"\": "\"default-service"\"}" \
             "https://$op5_host/api/config/service" >> /dev/null
        else
